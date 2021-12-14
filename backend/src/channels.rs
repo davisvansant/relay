@@ -43,6 +43,28 @@ pub async fn add_message(
     Ok(())
 }
 
+pub async fn add_user(
+    state: &StateSender,
+    uuid: String,
+    websocket: WebSocketSender,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (request, response) = oneshot::channel();
+
+    state
+        .send((StateRequest::AddUser((uuid, websocket)), request))
+        .await?;
+
+    match response.await {
+        Ok(StateResponse::Ok) => {
+            println!("successfully added user...");
+
+            Ok(())
+        }
+        Err(error) => Err(Box::new(error)),
+        _ => panic!("unexpected response!"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,6 +107,57 @@ mod tests {
         let test_message = Message::text("test_message");
 
         super::add_message(&test_state_sender, &test_message).await?;
+
+        assert!(test_task.await.is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn add_user() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, mut test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        let test_task = tokio::spawn(async move {
+            let mut test_state_users = HashMap::with_capacity(5);
+
+            assert_eq!(test_state_users.len(), 0);
+
+            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+                match test_request {
+                    StateRequest::AddMessage(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::AddUser((test_id, test_channel)) => {
+                        let test_none = test_state_users.insert(test_id, test_channel);
+
+                        assert!(test_none.is_none());
+
+                        test_response.send(StateResponse::Ok).unwrap();
+
+                        break;
+                    }
+                    StateRequest::GetMessages => {
+                        unimplemented!();
+                    }
+                    StateRequest::GetUsers => {
+                        unimplemented!();
+                    }
+                    StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                }
+            }
+
+            assert_eq!(test_state_users.len(), 1);
+        });
+
+        let test_uuid = uuid::Uuid::new_v4().to_string();
+        let (test_websocket_sender, test_websocket_receiver) = mpsc::channel(16);
+
+        drop(test_websocket_receiver);
+
+        super::add_user(&test_state_sender, test_uuid, test_websocket_sender).await?;
 
         assert!(test_task.await.is_ok());
 
