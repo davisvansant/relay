@@ -14,6 +14,19 @@ impl MessageKind {
     }
 }
 
+pub struct Object {
+    kind: String,
+    contents: String,
+}
+
+impl Object {
+    pub async fn build(kind: MessageKind, contents: String) -> Object {
+        let kind = kind.build().await;
+
+        Object { kind, contents }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -44,6 +57,18 @@ mod tests {
         let test_message_kind_uuid = MessageKind::Uuid.build().await;
 
         assert_eq!(test_message_kind_uuid.as_str(), "uuid");
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn object_build() -> Result<(), Box<dyn std::error::Error>> {
+        let test_message_kind = MessageKind::Message;
+        let test_contents = String::from("test_contents");
+        let test_object = Object::build(test_message_kind, test_contents).await;
+
+        assert_eq!(test_object.kind.as_str(), "message");
+        assert_eq!(test_object.contents.as_str(), "test_contents");
 
         Ok(())
     }
