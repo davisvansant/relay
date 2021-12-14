@@ -13,3 +13,38 @@ impl MessageKind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn message_kind_connected_users() -> Result<(), Box<dyn std::error::Error>> {
+        let test_message_kind_connected_users = MessageKind::ConnectedUsers.build().await;
+
+        assert_eq!(
+            test_message_kind_connected_users.as_str(),
+            "connected_users",
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn message_kind_message() -> Result<(), Box<dyn std::error::Error>> {
+        let test_message_kind_message = MessageKind::Message.build().await;
+
+        assert_eq!(test_message_kind_message.as_str(), "message");
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn message_kind_uuid() -> Result<(), Box<dyn std::error::Error>> {
+        let test_message_kind_uuid = MessageKind::Uuid.build().await;
+
+        assert_eq!(test_message_kind_uuid.as_str(), "uuid");
+
+        Ok(())
+    }
+}
