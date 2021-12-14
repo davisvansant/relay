@@ -1,3 +1,7 @@
+use serde::{Deserialize, Serialize};
+
+use warp::filters::ws::Message;
+
 pub enum MessageKind {
     Uuid,
     Message,
@@ -14,6 +18,7 @@ impl MessageKind {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Object {
     kind: String,
     contents: String,
@@ -24,6 +29,13 @@ impl Object {
         let kind = kind.build().await;
 
         Object { kind, contents }
+    }
+
+    pub async fn to_message(&self) -> Result<Message, Box<dyn std::error::Error>> {
+        let json = serde_json::to_string(&self)?;
+        let message = Message::text(&json);
+
+        Ok(message)
     }
 }
 
@@ -69,6 +81,24 @@ mod tests {
 
         assert_eq!(test_object.kind.as_str(), "message");
         assert_eq!(test_object.contents.as_str(), "test_contents");
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn object_to_message() -> Result<(), Box<dyn std::error::Error>> {
+        let test_message_kind = MessageKind::Message;
+        let test_contents = String::from("test_contents");
+        let test_object = Object::build(test_message_kind, test_contents).await;
+
+        assert_eq!(
+            test_object
+                .to_message()
+                .await?
+                .to_str()
+                .expect("websocket message &str"),
+            r#"{"kind":"message","contents":"test_contents"}"#,
+        );
 
         Ok(())
     }
