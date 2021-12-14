@@ -77,9 +77,23 @@ pub async fn get_messages(state: &StateSender) -> Result<Vec<Message>, Box<dyn s
     }
 }
 
+pub async fn get_users(state: &StateSender) -> Result<ConnectedUsers, Box<dyn std::error::Error>> {
+    let (request, response) = oneshot::channel();
+
+    state.send((StateRequest::GetUsers, request)).await?;
+
+    match response.await {
+        Ok(StateResponse::Users(connected_users)) => Ok(connected_users),
+        Err(error) => Err(Box::new(error)),
+        _ => panic!("unexpected response!"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
+    use uuid::Uuid;
 
     #[tokio::test(flavor = "multi_thread")]
     async fn add_message() -> Result<(), Box<dyn std::error::Error>> {
@@ -226,6 +240,69 @@ mod tests {
 
         for test_message in &test_messages {
             assert_eq!(test_message.to_str().unwrap(), "test_message");
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn get_users() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, mut test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        let test_task = tokio::spawn(async move {
+            let mut test_state_users = HashMap::with_capacity(5);
+
+            assert_eq!(test_state_users.len(), 0);
+
+            let test_uuid = uuid::Uuid::new_v4().to_string();
+            let (test_websocket_sender, test_websocket_receiver) = mpsc::channel(16);
+
+            drop(test_websocket_receiver);
+
+            assert!(test_state_users
+                .insert(test_uuid, test_websocket_sender)
+                .is_none());
+            assert_eq!(test_state_users.len(), 1);
+
+            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+                match test_request {
+                    StateRequest::AddMessage(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::AddUser(_) => {
+                        unimplemented!()
+                    }
+                    StateRequest::GetMessages => {
+                        unimplemented!();
+                    }
+                    StateRequest::GetUsers => {
+                        test_response
+                            .send(StateResponse::Users(test_state_users.clone()))
+                            .unwrap();
+
+                        break;
+                    }
+                    StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                }
+            }
+        });
+
+        let test_users = super::get_users(&test_state_sender).await?;
+
+        assert!(test_task.await.is_ok());
+        assert_eq!(test_users.len(), 1);
+
+        for (test_uuid, test_websocket_connection) in test_users.iter() {
+            assert_eq!(
+                Uuid::from_str(test_uuid)
+                    .expect("test uuid")
+                    .get_version_num(),
+                4,
+            );
+            assert!(test_websocket_connection.is_closed());
         }
 
         Ok(())
