@@ -1,5 +1,8 @@
 use std::net::SocketAddr;
 
+use warp::ws::{WebSocket, Ws};
+use warp::{ws, Filter};
+
 use crate::channels::StateSender;
 
 pub struct Server {
@@ -16,6 +19,37 @@ impl Server {
             socket_address,
             sender,
         })
+    }
+
+    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let state_sender_ownership = self.sender.to_owned();
+        let state_channel = warp::any().map(move || state_sender_ownership.to_owned());
+
+        let filter = warp::path("ws")
+            .and(ws())
+            .and(state_channel)
+            .map(|ws: Ws, state_channel| {
+                ws.on_upgrade(|connection| async move {
+                    if let Err(error) = Self::handle(connection, state_channel).await {
+                        println!("connection error -> {:?}", error);
+                    }
+                })
+            });
+
+        println!("server running -> {:?}", self.socket_address);
+
+        warp::serve(filter).run(self.socket_address).await;
+
+        Ok(())
+    }
+
+    async fn handle(
+        connection: WebSocket,
+        state_channel: StateSender,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        unimplemented!();
+
+        Ok(())
     }
 }
 
@@ -37,6 +71,30 @@ mod tests {
         let test_server = Server::init(test_address, test_state_sender).await;
 
         assert!(test_server.is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn run() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, mut test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        let test_state_channel = warp::any().map(move || test_state_sender.to_owned());
+        let test_filter = warp::path("ws").and(ws()).and(test_state_channel).map(
+            |ws: warp::ws::Ws, test_state_channel| {
+                ws.on_upgrade(|test_connection| async move {
+                    if let Err(error) = Server::handle(test_connection, test_state_channel).await {
+                        println!("there was an error : {:?}", error);
+                    }
+                })
+            },
+        );
+
+        let mut test_client = warp::test::ws().path("/ws").handshake(test_filter).await?;
+        let test_response = test_client.recv().await;
+
+        assert!(!test_response.is_ok());
 
         Ok(())
     }
