@@ -21,6 +21,12 @@ impl State {
             receiver,
         }
     }
+
+    async fn add_message(&mut self, message: Message) -> Result<(), Box<dyn std::error::Error>> {
+        self.messages.push(message);
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -42,6 +48,28 @@ mod tests {
 
         assert!(test_state.users.is_empty());
         assert!(test_state.users.capacity() >= 10);
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn add_message() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        drop(test_state_sender);
+
+        let mut test_state = State::init(test_state_receiver).await;
+
+        assert!(test_state.messages.is_empty());
+        assert_eq!(test_state.messages.len(), 0);
+
+        let test_message = Message::text("test_message");
+
+        test_state.add_message(test_message).await?;
+
+        assert!(!test_state.messages.is_empty());
+        assert_eq!(test_state.messages.len(), 1);
 
         Ok(())
     }
