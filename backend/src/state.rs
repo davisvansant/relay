@@ -42,6 +42,12 @@ impl State {
 
         Ok(())
     }
+
+    async fn get_messages(&self) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
+        println!("getting messages...");
+
+        Ok(self.messages.to_vec())
+    }
 }
 
 #[cfg(test)]
@@ -112,6 +118,32 @@ mod tests {
 
         assert!(!test_state.users.is_empty());
         assert_eq!(test_state.users.len(), 1);
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn get_messages() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        drop(test_state_sender);
+
+        let mut test_state = State::init(test_state_receiver).await;
+
+        let test_message_one = Message::text("test_message_one");
+        let test_message_two = Message::text("test_message_two");
+        let test_message_three = Message::text("test_message_three");
+
+        test_state.add_message(test_message_one).await?;
+        test_state.add_message(test_message_two).await?;
+        test_state.add_message(test_message_three).await?;
+
+        let test_messages = test_state.get_messages().await?;
+
+        assert_eq!(test_messages[0].to_str().unwrap(), "test_message_one");
+        assert_eq!(test_messages[1].to_str().unwrap(), "test_message_two");
+        assert_eq!(test_messages[2].to_str().unwrap(), "test_message_three");
 
         Ok(())
     }
