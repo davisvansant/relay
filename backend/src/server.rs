@@ -1,9 +1,16 @@
+use futures_util::stream::SplitSink;
+use futures_util::StreamExt;
+
 use std::net::SocketAddr;
 
-use warp::ws::{WebSocket, Ws};
+use tokio::sync::mpsc;
+
+use warp::ws::{Message, WebSocket, Ws};
 use warp::{ws, Filter};
 
-use crate::channels::StateSender;
+use uuid::Uuid;
+
+use crate::channels::{StateSender, WebSocketReceiver, WebSocketSender};
 
 pub struct Server {
     socket_address: SocketAddr,
@@ -47,7 +54,83 @@ impl Server {
         connection: WebSocket,
         state_channel: StateSender,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        unimplemented!();
+        let (mut sink, mut stream) = connection.split();
+        let (sink_sender, mut sink_receiver) = mpsc::channel(16);
+        let initial_state_sender = state_channel.clone();
+        let (session_id, uuid) = Server::create_account().await;
+
+        tokio::spawn(async move {
+            if let Err(error) = Server::incoming_connection(&mut sink_receiver, &mut sink).await {
+                println!("error handling incoming connection -> {:?}", error);
+            }
+        });
+
+        tokio::spawn(async move {
+            if let Err(error) =
+                Server::initial_messages(initial_state_sender, &uuid, sink_sender).await
+            {
+                println!("error running initial connection tasks -> {:?}", error);
+            }
+        });
+
+        while let Some(incoming) = stream.next().await {
+            match incoming {
+                Ok(message) => {
+                    if message.is_text() {
+                        println!("received text -> {:?}", &message);
+
+                        unimplemented!();
+                    }
+                    if message.is_binary() {
+                        println!("received binary -> {:?}", &message);
+
+                        unimplemented!();
+                    }
+                    if message.is_ping() {
+                        println!("received ping -> {:?}", &message);
+
+                        unimplemented!();
+                    }
+                    if message.is_pong() {
+                        println!("received pong -> {:?}", &message);
+
+                        unimplemented!();
+                    }
+                    if message.is_close() {
+                        println!("received close -> {:?}", &message);
+
+                        unimplemented!();
+                    }
+                }
+                Err(error) => println!("incoming websocket connection error -> {:?}", error),
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn create_account() -> (String, String) {
+        let session_id = Uuid::new_v4().to_string();
+        let uuid = session_id.to_owned();
+
+        (session_id, uuid)
+    }
+
+    async fn incoming_connection(
+        sink_receiver: &mut WebSocketReceiver,
+        sink: &mut SplitSink<WebSocket, Message>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // unimplemented!();
+
+        Ok(())
+    }
+
+    async fn initial_messages(
+        state: StateSender,
+        uuid: &str,
+        websocket_sender: WebSocketSender,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // unimplemented!();
 
         Ok(())
     }
@@ -92,6 +175,9 @@ mod tests {
         );
 
         let mut test_client = warp::test::ws().path("/ws").handshake(test_filter).await?;
+
+        test_client.send(Message::close()).await;
+
         let test_response = test_client.recv().await;
 
         assert!(!test_response.is_ok());
