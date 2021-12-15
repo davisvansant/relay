@@ -22,6 +22,54 @@ impl State {
         }
     }
 
+    pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        while let Some((request, response)) = self.receiver.recv().await {
+            match request {
+                StateRequest::AddMessage(message) => {
+                    println!("incoming add message request");
+
+                    self.add_message(message).await?;
+                }
+                StateRequest::AddUser((uuid, connection)) => {
+                    println!("incoming add user request!");
+
+                    self.add_user(uuid, connection).await?;
+
+                    if let Err(error) = response.send(StateResponse::Ok) {
+                        println!("error sending add user response -> {:?}", error);
+                    }
+                }
+                StateRequest::GetMessages => {
+                    println!("incoming get messages request...");
+
+                    let messages = self.get_messages().await?;
+
+                    if let Err(error) = response.send(StateResponse::Messages(messages)) {
+                        println!("error sending response -> {:?}", error);
+                    }
+                }
+                StateRequest::GetUsers => {
+                    println!("incoming get users request....");
+
+                    let users = self.get_users().await;
+
+                    if let Err(error) = response.send(StateResponse::Users(users)) {
+                        println!("error sending response -> {:?}", error);
+                    }
+                }
+                StateRequest::RemoveUser(uuid) => {
+                    self.remove_user(&uuid).await?;
+
+                    if let Err(error) = response.send(StateResponse::Ok) {
+                        println!("error sending response -> {:?}", error);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     async fn add_message(&mut self, message: Message) -> Result<(), Box<dyn std::error::Error>> {
         self.messages.push(message);
 
