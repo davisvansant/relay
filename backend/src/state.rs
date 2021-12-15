@@ -52,6 +52,14 @@ impl State {
     async fn get_users(&self) -> ConnectedUsers {
         self.users.clone()
     }
+
+    async fn remove_user(&mut self, uuid: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(entry) = self.users.remove(uuid) {
+            println!("removing user -> {:?}", entry);
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -189,6 +197,39 @@ mod tests {
             assert!(!test_websocket_connection.is_closed());
             assert_eq!(test_websocket_connection.capacity(), 16);
         }
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn remove_user() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        drop(test_state_sender);
+
+        let mut test_state = State::init(test_state_receiver).await;
+
+        assert!(test_state.users.is_empty());
+        assert_eq!(test_state.users.len(), 0);
+
+        let test_uuid = uuid::Uuid::new_v4().to_string();
+        let test_remove_user = test_uuid.clone();
+        let (test_websocket_sender, test_websocket_receiver) = mpsc::channel(16);
+
+        drop(test_websocket_receiver);
+
+        test_state
+            .add_user(test_uuid, test_websocket_sender)
+            .await?;
+
+        assert!(!test_state.users.is_empty());
+        assert_eq!(test_state.users.len(), 1);
+
+        test_state.remove_user(&test_remove_user).await?;
+
+        assert!(test_state.users.is_empty());
+        assert_eq!(test_state.users.len(), 0);
 
         Ok(())
     }
