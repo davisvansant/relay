@@ -256,35 +256,35 @@ mod tests {
             mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
 
         tokio::spawn(async move {
-            let mut test_state = Vec::with_capacity(5);
-            let mut test_users = HashMap::with_capacity(5);
+            let mut test_state_messages = Vec::with_capacity(5);
+            let mut test_state_users = HashMap::with_capacity(5);
 
             while let Some((test_request, test_response)) = test_state_receiver.recv().await {
                 match test_request {
-                    StateRequest::GetMessages => {
-                        let test_messages = test_state.to_vec();
-
-                        test_response
-                            .send(StateResponse::Messages(test_messages))
-                            .unwrap();
-                    }
                     StateRequest::AddMessage(test_new_message) => {
-                        test_state.push(test_new_message);
+                        test_state_messages.push(test_new_message);
                     }
                     StateRequest::AddUser((test_id, test_channel)) => {
-                        let test_none = test_users.insert(test_id.to_string(), test_channel);
+                        let test_none = test_state_users.insert(test_id.to_string(), test_channel);
 
                         assert!(test_none.is_none());
 
                         test_response.send(StateResponse::Ok).unwrap();
                     }
+                    StateRequest::GetMessages => {
+                        let test_messages = test_state_messages.to_vec();
+
+                        test_response
+                            .send(StateResponse::Messages(test_messages))
+                            .unwrap();
+                    }
                     StateRequest::GetUsers => {
                         test_response
-                            .send(StateResponse::Users(test_users.clone()))
+                            .send(StateResponse::Users(test_state_users.clone()))
                             .unwrap();
                     }
                     StateRequest::RemoveUser(_) => {
-                        test_users.clear();
+                        test_state_users.clear();
                     }
                 }
             }
@@ -303,11 +303,31 @@ mod tests {
 
         let mut test_client = warp::test::ws().path("/ws").handshake(test_filter).await?;
 
+        let test_uuid = test_client.recv().await?;
+        let test_uuid_response: Object = serde_json::from_str(test_uuid.to_str().unwrap())?;
+
+        assert_eq!(test_uuid_response.kind, "uuid");
+
+        let test_connected_users = test_client.recv().await?;
+        let test_connected_users_response: Object =
+            serde_json::from_str(test_connected_users.to_str().unwrap())?;
+
+        assert_eq!(test_connected_users_response.kind, "connected_users");
+        assert_eq!(test_connected_users_response.contents, "1");
+
+        test_client.send_text("test_message").await;
+
+        let test_message = test_client.recv().await?;
+        let test_message_response: Object = serde_json::from_str(test_message.to_str().unwrap())?;
+
+        assert_eq!(test_message_response.kind, "message");
+        assert_eq!(test_message_response.contents, "test_message");
+
         test_client.send(Message::close()).await;
 
-        let test_response = test_client.recv().await;
+        let test_close = test_client.recv_closed().await;
 
-        assert!(test_response.is_ok());
+        assert!(test_close.is_ok());
 
         Ok(())
     }
