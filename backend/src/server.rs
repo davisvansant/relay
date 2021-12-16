@@ -10,29 +10,37 @@ use warp::{ws, Filter};
 
 use uuid::Uuid;
 
-use crate::channels::{add_message, add_user, get_messages, get_users, remove_user};
-use crate::channels::{StateSender, WebSocketConnection, WebSocketReceiver, WebSocketSender};
+use crate::channels::{add_message, add_user, get_messages, get_users, remove_user, shutdown};
+use crate::channels::{
+    ShutdownSignal, StateSender, WebSocketConnection, WebSocketReceiver, WebSocketSender,
+};
 use crate::json::{MessageKind, Object};
 
 pub struct Server {
     socket_address: SocketAddr,
     sender: StateSender,
+    shutdown_signal: ShutdownSignal,
 }
 
 impl Server {
     pub async fn init(
         socket_address: SocketAddr,
         sender: StateSender,
+        shutdown_signal: ShutdownSignal,
     ) -> Result<Server, Box<dyn std::error::Error>> {
         Ok(Server {
             socket_address,
             sender,
+            shutdown_signal,
         })
     }
 
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
         let state_sender_ownership = self.sender.to_owned();
         let state_channel = warp::any().map(move || state_sender_ownership.to_owned());
+
+        let mut shutdown_signal = self.shutdown_signal.to_owned();
+        let send_shutdown = self.sender.to_owned();
 
         let filter = warp::path("ws")
             .and(ws())
@@ -47,7 +55,18 @@ impl Server {
 
         println!("server running -> {:?}", self.socket_address);
 
-        warp::serve(filter).run(self.socket_address).await;
+        let (_, server) =
+            warp::serve(filter).bind_with_graceful_shutdown(self.socket_address, async move {
+                shutdown_signal.changed().await.ok();
+
+                if let Ok(()) = shutdown(&send_shutdown).await {
+                    println!("shutting down state...");
+                }
+
+                println!("shutting down server...");
+            });
+
+        server.await;
 
         Ok(())
     }
@@ -233,17 +252,24 @@ mod tests {
     use crate::channels::{StateRequest, StateResponse};
     use std::collections::HashMap;
     use std::str::FromStr;
-    use tokio::sync::{mpsc, oneshot};
+    use tokio::sync::{mpsc, oneshot, watch};
 
     #[tokio::test(flavor = "multi_thread")]
     async fn init() -> Result<(), Box<dyn std::error::Error>> {
         let test_address = SocketAddr::from_str("127.0.0.1:1806")?;
         let (test_state_sender, test_state_receiver) =
             mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+        let (test_send_shutdown_signal, test_receive_shutdown_signal) = watch::channel(1);
 
         drop(test_state_receiver);
+        drop(test_send_shutdown_signal);
 
-        let test_server = Server::init(test_address, test_state_sender).await;
+        let test_server = Server::init(
+            test_address,
+            test_state_sender,
+            test_receive_shutdown_signal,
+        )
+        .await;
 
         assert!(test_server.is_ok());
 
@@ -285,6 +311,9 @@ mod tests {
                     }
                     StateRequest::RemoveUser(_) => {
                         test_state_users.clear();
+                    }
+                    StateRequest::Shutdown => {
+                        unimplemented!();
                     }
                 }
             }
