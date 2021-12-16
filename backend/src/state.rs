@@ -64,6 +64,9 @@ impl State {
                         println!("error sending response -> {:?}", error);
                     }
                 }
+                StateRequest::Shutdown => {
+                    self.receiver.close();
+                }
             }
         }
 
