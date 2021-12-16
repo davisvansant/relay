@@ -1,8 +1,9 @@
 use std::collections::HashMap;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use warp::ws::Message;
 
 pub type ConnectedUsers = HashMap<String, WebSocketSender>;
+pub type ShutdownSignal = watch::Receiver<u8>;
 pub type StateReceiver = mpsc::Receiver<(StateRequest, oneshot::Sender<StateResponse>)>;
 pub type StateSender = mpsc::Sender<(StateRequest, oneshot::Sender<StateResponse>)>;
 pub type WebSocketReceiver = mpsc::Receiver<WebSocketConnection>;
@@ -15,6 +16,7 @@ pub enum StateRequest {
     GetUsers,
     GetMessages,
     RemoveUser(String),
+    Shutdown,
 }
 
 #[derive(Clone, Debug)]
@@ -110,6 +112,17 @@ pub async fn remove_user(
     }
 }
 
+pub async fn shutdown(
+    state: &StateSender,
+    // session_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (request, _response) = oneshot::channel();
+
+    state.send((StateRequest::Shutdown, request)).await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,6 +156,9 @@ mod tests {
                         unimplemented!();
                     }
                     StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::Shutdown => {
                         unimplemented!();
                     }
                 }
@@ -191,6 +207,9 @@ mod tests {
                         unimplemented!();
                     }
                     StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::Shutdown => {
                         unimplemented!();
                     }
                 }
@@ -250,6 +269,9 @@ mod tests {
                     StateRequest::RemoveUser(_) => {
                         unimplemented!();
                     }
+                    StateRequest::Shutdown => {
+                        unimplemented!();
+                    }
                 }
             }
         });
@@ -305,6 +327,9 @@ mod tests {
                         break;
                     }
                     StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::Shutdown => {
                         unimplemented!();
                     }
                 }
@@ -372,6 +397,9 @@ mod tests {
 
                         break;
                     }
+                    StateRequest::Shutdown => {
+                        unimplemented!();
+                    }
                 }
             }
 
@@ -381,6 +409,49 @@ mod tests {
         super::remove_user(&test_state_sender, &test_lookup_uuid).await?;
 
         assert!(test_task.await.is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn shutdown() -> Result<(), Box<dyn std::error::Error>> {
+        let (test_state_sender, mut test_state_receiver) =
+            mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
+
+        let test_task = tokio::spawn(async move {
+            let (test_websocket_sender, test_websocket_receiver) =
+                mpsc::channel::<WebSocketConnection>(16);
+
+            drop(test_websocket_receiver);
+
+            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+                match test_request {
+                    StateRequest::AddMessage(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::AddUser(_) => {
+                        unimplemented!()
+                    }
+                    StateRequest::GetMessages => {
+                        unimplemented!();
+                    }
+                    StateRequest::GetUsers => {
+                        unimplemented!()
+                    }
+                    StateRequest::RemoveUser(_) => {
+                        unimplemented!();
+                    }
+                    StateRequest::Shutdown => {
+                        test_state_receiver.close();
+                    }
+                }
+            }
+        });
+
+        super::shutdown(&test_state_sender).await?;
+
+        assert!(test_task.await.is_ok());
+        assert!(test_state_sender.is_closed());
 
         Ok(())
     }
