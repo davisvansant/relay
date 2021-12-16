@@ -20,8 +20,8 @@ impl MessageKind {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Object {
-    kind: String,
-    contents: String,
+    pub kind: String,
+    pub contents: String,
 }
 
 impl Object {
