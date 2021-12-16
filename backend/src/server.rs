@@ -1,5 +1,5 @@
 use futures_util::stream::SplitSink;
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 
 use std::net::SocketAddr;
 
@@ -10,7 +10,9 @@ use warp::{ws, Filter};
 
 use uuid::Uuid;
 
-use crate::channels::{StateSender, WebSocketReceiver, WebSocketSender};
+use crate::channels::{add_message, add_user, get_messages, get_users, remove_user};
+use crate::channels::{StateSender, WebSocketConnection, WebSocketReceiver, WebSocketSender};
+use crate::json::{MessageKind, Object};
 
 pub struct Server {
     socket_address: SocketAddr,
@@ -79,7 +81,20 @@ impl Server {
                     if message.is_text() {
                         println!("received text -> {:?}", &message);
 
-                        unimplemented!();
+                        add_message(&state_channel, &message).await?;
+
+                        let connected_users = get_users(&state_channel).await?;
+                        let contents = String::from_utf8(message.to_owned().into_bytes())?;
+                        let message_object = Object::build(MessageKind::Message, contents).await;
+                        let websocket_message = message_object.to_message().await?;
+
+                        for connected_user in connected_users.values() {
+                            connected_user
+                                .send(WebSocketConnection::SendMessage(
+                                    websocket_message.to_owned(),
+                                ))
+                                .await?;
+                        }
                     }
                     if message.is_binary() {
                         println!("received binary -> {:?}", &message);
@@ -99,7 +114,30 @@ impl Server {
                     if message.is_close() {
                         println!("received close -> {:?}", &message);
 
-                        unimplemented!();
+                        let connected_users = get_users(&state_channel).await?;
+
+                        if let Some(current_user) = connected_users.get(&session_id) {
+                            current_user.send(WebSocketConnection::Close).await?;
+                        }
+
+                        remove_user(&state_channel, &session_id).await?;
+
+                        let remaining_users = get_users(&state_channel).await?;
+                        let connected_users_count = Object::build(
+                            MessageKind::ConnectedUsers,
+                            remaining_users.len().to_string(),
+                        )
+                        .await;
+                        let connected_users_count_message =
+                            connected_users_count.to_message().await?;
+
+                        for remaining_user in remaining_users.values() {
+                            remaining_user
+                                .send(WebSocketConnection::SendMessage(
+                                    connected_users_count_message.to_owned(),
+                                ))
+                                .await?;
+                        }
                     }
                 }
                 Err(error) => println!("incoming websocket connection error -> {:?}", error),
@@ -120,7 +158,16 @@ impl Server {
         sink_receiver: &mut WebSocketReceiver,
         sink: &mut SplitSink<WebSocket, Message>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // unimplemented!();
+        while let Some(incoming) = sink_receiver.recv().await {
+            match incoming {
+                WebSocketConnection::SendMessage(message) => {
+                    sink.send(message).await?;
+                }
+                WebSocketConnection::Close => {
+                    sink.close().await?;
+                }
+            }
+        }
 
         Ok(())
     }
@@ -130,7 +177,51 @@ impl Server {
         uuid: &str,
         websocket_sender: WebSocketSender,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // unimplemented!();
+        add_user(&state, uuid.to_owned(), websocket_sender).await?;
+
+        let connected_users = get_users(&state).await?;
+        let older_messages = get_messages(&state).await?;
+
+        if let Some(current_user) = connected_users.get(uuid) {
+            let session_uuid = Object::build(MessageKind::Uuid, uuid.to_string()).await;
+            let session_uuid_message = session_uuid.to_message().await?;
+
+            current_user
+                .send(WebSocketConnection::SendMessage(session_uuid_message))
+                .await?;
+
+            for connected_user in connected_users.values() {
+                let connected_user_count = Object::build(
+                    MessageKind::ConnectedUsers,
+                    connected_users.len().to_string(),
+                )
+                .await;
+
+                let connected_user_count_message = connected_user_count.to_message().await?;
+
+                connected_user
+                    .send(WebSocketConnection::SendMessage(
+                        connected_user_count_message,
+                    ))
+                    .await?;
+            }
+
+            if older_messages.is_empty() {
+                println!("no older messages to send...");
+            } else {
+                println!("sending older messages ...");
+
+                for message in &older_messages {
+                    let contents = String::from_utf8(message.to_owned().into_bytes())?;
+                    let older_message = Object::build(MessageKind::Message, contents).await;
+                    let older_message_json = older_message.to_message().await?;
+
+                    current_user
+                        .send(WebSocketConnection::SendMessage(older_message_json))
+                        .await?;
+                }
+            }
+        }
 
         Ok(())
     }
@@ -140,6 +231,7 @@ impl Server {
 mod tests {
     use super::*;
     use crate::channels::{StateRequest, StateResponse};
+    use std::collections::HashMap;
     use std::str::FromStr;
     use tokio::sync::{mpsc, oneshot};
 
@@ -163,6 +255,41 @@ mod tests {
         let (test_state_sender, mut test_state_receiver) =
             mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
 
+        tokio::spawn(async move {
+            let mut test_state = Vec::with_capacity(5);
+            let mut test_users = HashMap::with_capacity(5);
+
+            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+                match test_request {
+                    StateRequest::GetMessages => {
+                        let test_messages = test_state.to_vec();
+
+                        test_response
+                            .send(StateResponse::Messages(test_messages))
+                            .unwrap();
+                    }
+                    StateRequest::AddMessage(test_new_message) => {
+                        test_state.push(test_new_message);
+                    }
+                    StateRequest::AddUser((test_id, test_channel)) => {
+                        let test_none = test_users.insert(test_id.to_string(), test_channel);
+
+                        assert!(test_none.is_none());
+
+                        test_response.send(StateResponse::Ok).unwrap();
+                    }
+                    StateRequest::GetUsers => {
+                        test_response
+                            .send(StateResponse::Users(test_users.clone()))
+                            .unwrap();
+                    }
+                    StateRequest::RemoveUser(_) => {
+                        test_users.clear();
+                    }
+                }
+            }
+        });
+
         let test_state_channel = warp::any().map(move || test_state_sender.to_owned());
         let test_filter = warp::path("ws").and(ws()).and(test_state_channel).map(
             |ws: warp::ws::Ws, test_state_channel| {
@@ -180,7 +307,7 @@ mod tests {
 
         let test_response = test_client.recv().await;
 
-        assert!(!test_response.is_ok());
+        assert!(test_response.is_ok());
 
         Ok(())
     }
