@@ -139,14 +139,14 @@ mod tests {
 
             assert_eq!(test_state_messages.len(), 0);
 
-            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+            while let Some((test_request, _test_response)) = test_state_receiver.recv().await {
                 match test_request {
                     StateRequest::AddMessage(test_new_message) => {
                         test_state_messages.push(test_new_message);
 
                         break;
                     }
-                    StateRequest::AddUser((test_id, test_channel)) => {
+                    StateRequest::AddUser(_) => {
                         unimplemented!();
                     }
                     StateRequest::GetMessages => {
@@ -419,12 +419,7 @@ mod tests {
             mpsc::channel::<(StateRequest, oneshot::Sender<StateResponse>)>(64);
 
         let test_task = tokio::spawn(async move {
-            let (test_websocket_sender, test_websocket_receiver) =
-                mpsc::channel::<WebSocketConnection>(16);
-
-            drop(test_websocket_receiver);
-
-            while let Some((test_request, test_response)) = test_state_receiver.recv().await {
+            while let Some((test_request, _test_response)) = test_state_receiver.recv().await {
                 match test_request {
                     StateRequest::AddMessage(_) => {
                         unimplemented!();

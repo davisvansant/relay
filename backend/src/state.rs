@@ -226,7 +226,7 @@ mod tests {
         assert_eq!(test_state.users.len(), 0);
 
         let test_uuid = uuid::Uuid::new_v4().to_string();
-        let (test_websocket_sender, test_websocket_receiver) = mpsc::channel(16);
+        let (test_websocket_sender, _test_websocket_receiver) = mpsc::channel(16);
 
         test_state
             .add_user(test_uuid, test_websocket_sender)
