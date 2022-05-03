@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures-util = "0.3.17"
-serde = { version = "1.0.131", default-features = false, features = [ "derive", "std" ] }
-serde_json = { version = "1.0.72", default-features = false, features = [ "std" ] }
-tokio = { version = "1.15.0", default-features = false, features = [ "macros", "rt-multi-thread", "signal", "sync", "test-util" ] }
+futures-util = "0.3.21"
+serde = { version = "1.0.137", default-features = false, features = [ "derive", "std" ] }
+serde_json = { version = "1.0.80", default-features = false, features = [ "std" ] }
+tokio = { version = "1.18.1", default-features = false, features = [ "macros", "rt-multi-thread", "signal", "sync", "test-util" ] }
 uuid = { version = "0.8.2", default-features = false, features = ["v4"] }
 warp = { version = "0.3.2", default-features = false, features = ["websocket"] }
