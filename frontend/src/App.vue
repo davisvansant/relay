@@ -27,7 +27,17 @@
           {{ message }}
         </p>
       </div>
-      <div id="base" class="base"></div>
+      <div id="base" class="base">
+        <span id="uuid" class="uuid">
+          ||
+          uuid -
+          {{ uuid }}
+        </span>
+        <span id="connected_users" class="connected_users">
+          users -
+          {{ connected_users }}
+        </span>
+      </div>
     </div>
   </transition>
 </template>
@@ -40,7 +50,9 @@ export default defineComponent({
     return {
       url: '',
       ready_state: '',
-      received_messages: []
+      received_messages: [],
+      uuid: '',
+      connected_users: ''
     }
   }
 })
@@ -122,5 +134,17 @@ export default defineComponent({
     display: grid;
     grid-row-start: 4;
     grid-template-columns: auto auto 45% 15%;
+    align-items: center;
+    justify-items: stretch;
+  }
+  .uuid {
+    color: black;
+    font: 14px Verdana, sans-serif;
+    grid-column-start: 1;
+  }
+  .connected_users {
+    color: black;
+    font: 14px Verdana, sans-serif;
+    grid-column-start: 2;
   }
 </style>
