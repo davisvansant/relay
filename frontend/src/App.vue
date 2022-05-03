@@ -95,4 +95,13 @@ export default defineComponent({
     color: darkslategray;
     border: 2px solid goldenrod;
   }
+  .console .messages {
+    background-color: lightgray;
+    border-radius: 8px;
+    border: 2px solid lightslategray;
+    border-left: 15px solid lightslategray;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: goldenrod lightslategray;
+  }
 </style>
