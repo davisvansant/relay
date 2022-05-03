@@ -1,5 +1,7 @@
 <template>
   <transition name="fade" appear>
+    <div id="console" class="console">
+    </div>
   </transition>
 </template>
 
