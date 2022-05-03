@@ -23,7 +23,7 @@
       </div>
       <hr class="hr">
       <div id="messages" class="messages">
-        <p id="message" v-for="message in received_messages" :key="message">
+        <p v-for="message in received_messages" :key="message" :id="'message' + message.id">
           {{ message.text }}
         </p>
       </div>
