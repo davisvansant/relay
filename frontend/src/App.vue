@@ -24,7 +24,7 @@
       <hr class="hr">
       <div id="messages" class="messages">
         <p id="message" v-for="message in received_messages" :key="message">
-          {{ message }}
+          {{ message.text }}
         </p>
       </div>
       <div id="base" class="base">
@@ -95,7 +95,7 @@ export default defineComponent({
           this.connected_users = IncomingMessage.contents
           break
         case 'message':
-          console.log('do things with an incoming message...')
+          this.receiveMessage(IncomingMessage.contents)
           break
         case 'uuid':
           this.uuid = IncomingMessage.contents
