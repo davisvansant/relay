@@ -29,11 +29,12 @@
       </div>
       <div id="base" class="base">
         <span id="uuid" class="uuid">
-          ||
-          uuid -
+          <span class="accent">||</span>
+          <span>uuid -</span>
           {{ uuid }}
         </span>
         <span id="connected_users" class="connected_users">
+          <span class="accent">||</span>
           users -
           {{ connected_users }}
         </span>
