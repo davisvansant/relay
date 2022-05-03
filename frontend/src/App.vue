@@ -9,6 +9,7 @@
         </span>
       </div>
       <hr class="hr">
+      <div id="messages" class="messages"></div>
     </div>
   </transition>
 </template>
