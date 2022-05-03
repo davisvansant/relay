@@ -2,6 +2,11 @@
   <transition name="fade" appear>
     <div id="console" class="console">
       <div id="nav" class="nav">
+        <span id="title" class="title">
+          <span>
+            r e l a y
+          </span>
+        </span>
       </div>
     </div>
   </transition>
