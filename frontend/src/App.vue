@@ -53,4 +53,14 @@ export default defineComponent({
     grid-template-rows: 30px 10px auto 50px;
     gap: 10px;
   }
+  .console .nav {
+    display: grid;
+    grid-template-columns: 50% 35% auto;
+    align-items: center;
+    justify-items: stretch;
+  }
+  .nav .title {
+    color: goldenrod;
+    grid-column-start: 1;
+  }
 </style>
