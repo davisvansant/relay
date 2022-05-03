@@ -6,6 +6,12 @@
           <span>
             r e l a y
           </span>
+          <span id="url" class="url">
+            server
+            {{ url }}
+            status
+            {{ ready_state }}
+          </span>
         </span>
       </div>
       <hr class="hr">
@@ -20,7 +26,10 @@ import { defineComponent } from 'vue'
 export default defineComponent({
   name: 'app',
   data () {
-    return {}
+    return {
+      url: '',
+      ready_state: ''
+    }
   }
 })
 </script>
