@@ -50,12 +50,29 @@ export default defineComponent({
   name: 'app',
   data () {
     return {
+      connection: WebSocket.prototype,
       url: '',
       ready_state: '',
       received_messages: [],
       uuid: '',
       connected_users: ''
     }
+  },
+  created () {
+    const url = 'ws://localhost:1806/ws'
+    const connection = new WebSocket(url)
+
+    interface Message {
+      id: number,
+      text: string,
+    }
+
+    const messages:Message[] = []
+
+    this.connection = connection
+    this.ready_state = ''
+    this.url = connection.url
+    this.received_messages = messages
   }
 })
 </script>
