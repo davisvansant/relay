@@ -38,6 +38,7 @@
           {{ connected_users }}
         </span>
         <input type="text" id="new_message" class="new_message" autofocus>
+        <button class="new_message_button">new message</button>
       </div>
     </div>
   </transition>
@@ -157,5 +158,20 @@ export default defineComponent({
     font: 12px Courier, monospace;
     outline: none;
     grid-column-start: 3;
+  }
+  .new_message_button {
+    background-color: goldenrod;
+    border: 2px solid darkslategray;
+    border-radius: 100px;
+    height: 75%;
+    width: 95%;
+    color: black;
+    font: 12px Verdana, sans-serif;
+    transition: background-color 1s, color 1s, border 1s;
+    grid-column-start: 4;
+  }
+  .new_message_button:hover {
+    background-color: darkslategray;
+    color: goldenrod;
   }
 </style>
