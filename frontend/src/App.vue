@@ -101,6 +101,10 @@ export default defineComponent({
     connection.addEventListener('error', (ErrorEvent) => {
       console.log('Error ->', ErrorEvent)
     })
+
+    connection.addEventListener('close', (CloseEvent) => {
+      console.log('Closing ->', CloseEvent)
+    })
   }
 })
 </script>
