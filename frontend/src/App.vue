@@ -26,6 +26,12 @@ export default defineComponent({
 </script>
 
 <style>
+  .fade-enter-from {
+    opacity: 0;
+  }
+  .fade-enter-active {
+    transition: opacity 2.5s ease;
+  }
   body {
     background: whitesmoke;
   }
