@@ -53,7 +53,7 @@ export default defineComponent({
       connection: WebSocket.prototype,
       url: '',
       ready_state: '',
-      received_messages: [],
+      received_messages: [{ id: 0, text: '' }],
       uuid: '',
       connected_users: ''
     }
@@ -148,6 +148,16 @@ export default defineComponent({
 
       if (element != null) {
         element.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' })
+      }
+    }
+  },
+  watch: {
+    received_messages: {
+      deep: true,
+      handler () {
+        this.$nextTick(() => {
+          this.scrollMessages()
+        })
       }
     }
   }
