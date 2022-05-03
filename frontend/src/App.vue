@@ -1,6 +1,8 @@
 <template>
   <transition name="fade" appear>
     <div id="console" class="console">
+      <div id="nav" class="nav">
+      </div>
     </div>
   </transition>
 </template>
