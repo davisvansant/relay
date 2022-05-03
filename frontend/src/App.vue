@@ -3,19 +3,19 @@
     <div id="console" class="console">
       <div id="nav" class="nav">
         <span id="title" class="title">
-          <span> | </span>
+          <span class="accent"> | </span>
           r e l a y
         </span>
           <span id="url" class="url">
-            <span>|</span>
+            <span class="accent">|</span>
             server
-            <span>.</span>
+            <span class="accent">.</span>
             {{ url }}
-            <span>|</span>
+            <span class="accent">|</span>
             status
-            <span>.</span>
+            <span class="accent">.</span>
             {{ ready_state }}
-            <span>|</span>
+            <span class="accent">|</span>
           </span>
         <button class="close_connection_button">
           [ close connection ]
@@ -66,6 +66,9 @@ export default defineComponent({
   }
   .fade-enter-active {
     transition: opacity 2.5s ease;
+  }
+  .accent {
+    color: darkslategray;
   }
   body {
     background: whitesmoke;
