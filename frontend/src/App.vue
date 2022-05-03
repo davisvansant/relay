@@ -97,6 +97,10 @@ export default defineComponent({
           break
       }
     })
+
+    connection.addEventListener('error', (ErrorEvent) => {
+      console.log('Error ->', ErrorEvent)
+    })
   }
 })
 </script>
