@@ -18,7 +18,11 @@
         </button>
       </div>
       <hr class="hr">
-      <div id="messages" class="messages"></div>
+      <div id="messages" class="messages">
+        <p id="message" v-for="message in received_messages" :key="message">
+          {{ message }}
+        </p>
+      </div>
       <div id="base" class="base"></div>
     </div>
   </transition>
@@ -31,7 +35,8 @@ export default defineComponent({
   data () {
     return {
       url: '',
-      ready_state: ''
+      ready_state: '',
+      received_messages: []
     }
   }
 })
