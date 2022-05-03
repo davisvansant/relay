@@ -37,6 +37,7 @@
           users -
           {{ connected_users }}
         </span>
+        <input type="text" id="new_message" class="new_message" autofocus>
       </div>
     </div>
   </transition>
@@ -146,5 +147,15 @@ export default defineComponent({
     color: black;
     font: 14px Verdana, sans-serif;
     grid-column-start: 2;
+  }
+  .new_message {
+    height: 50%;
+    width: 95%;
+    background-color: lightgray;
+    border: 2px solid darkslategray;
+    color: black;
+    font: 12px Courier, monospace;
+    outline: none;
+    grid-column-start: 3;
   }
 </style>
