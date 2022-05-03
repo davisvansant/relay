@@ -79,6 +79,24 @@ export default defineComponent({
       console.log('Connected to server ->', url)
       console.log('Ready state ->', connection.readyState)
     })
+
+    connection.addEventListener('message', (MessageEvent) => {
+      console.log('Received message ->', MessageEvent)
+
+      const IncomingMessage = JSON.parse(MessageEvent.data)
+
+      switch (IncomingMessage.kind) {
+        case 'connected_users':
+          this.connected_users = IncomingMessage.contents
+          break
+        case 'message':
+          console.log('do things with an incoming message...')
+          break
+        case 'uuid':
+          this.uuid = IncomingMessage.contents
+          break
+      }
+    })
   }
 })
 </script>
