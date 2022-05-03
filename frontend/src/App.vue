@@ -31,9 +31,20 @@ export default defineComponent({
   }
   .hr {
     color: steelblue;
-    margin-top: 0.5em;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 0.5em;
+    grid-row-start: 2;
+    width: 100%;
+  }
+  .console {
+    background: gainsboro;
+    border-radius: 5px;
+    width: 85vw;
+    height: 85vh;
+    padding: 20px;
+    margin: auto;
+    box-shadow: 10px 10px 10px 0 rgba(white, white, white, 0.75);
+    position: relative;
+    display: grid;
+    grid-template-rows: 30px 10px auto 50px;
+    gap: 10px;
   }
 </style>
