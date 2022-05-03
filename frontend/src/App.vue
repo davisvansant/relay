@@ -3,8 +3,9 @@
     <div id="console" class="console">
       <div id="nav" class="nav">
         <span id="title" class="title">
-          <span>|</span>
-          <span> r e l a y</span>
+          <span> | </span>
+          r e l a y
+        </span>
           <span id="url" class="url">
             <span>|</span>
             server
@@ -16,7 +17,6 @@
             {{ ready_state }}
             <span>|</span>
           </span>
-        </span>
         <button class="close_connection_button">
           [ close connection ]
         </button>
