@@ -17,7 +17,7 @@
             {{ ready_state }}
             <span class="accent">|</span>
           </span>
-        <button class="close_connection_button">
+        <button class="close_connection_button" v-on:click="closeConnection()">
           [ close connection ]
         </button>
       </div>
