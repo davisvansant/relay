@@ -105,6 +105,51 @@ export default defineComponent({
     connection.addEventListener('close', (CloseEvent) => {
       console.log('Closing ->', CloseEvent)
     })
+  },
+  methods: {
+    closeConnection () {
+      this.connection.close(1000, 'goodbye!')
+    },
+    checkReadyState () {
+      switch (this.connection.readyState) {
+        case 0:
+          this.ready_state = 'CONNECTING'
+          return this.ready_state
+        case 1:
+          this.ready_state = 'OPEN'
+          return this.ready_state
+        case 2:
+          this.ready_state = 'CLOSING'
+          return this.ready_state
+        case 3:
+          this.ready_state = 'CLOSED'
+          return this.ready_state
+      }
+    },
+    receiveMessage (message: string) {
+      const id = this.received_messages.length + 1
+
+      this.received_messages.push({ id: id, text: message })
+
+      return this.received_messages
+    },
+    sendMessage () {
+      const newMessage = document.getElementById('new_message') as HTMLInputElement
+
+      console.log(newMessage.value)
+
+      if (newMessage != null) {
+        this.connection.send(newMessage.value)
+      }
+    },
+    scrollMessages () {
+      const id = this.received_messages.length
+      const element = document.getElementById('message' + id)
+
+      if (element != null) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' })
+      }
+    }
   }
 })
 </script>
