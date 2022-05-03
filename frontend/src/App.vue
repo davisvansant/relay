@@ -104,4 +104,12 @@ export default defineComponent({
     scrollbar-width: thin;
     scrollbar-color: goldenrod lightslategray;
   }
+  .console .base {
+    background-color: goldenrod;
+    border-radius: 8px;
+    border: 2px solid darkslategray;
+    display: grid;
+    grid-row-start: 4;
+    grid-template-columns: auto auto 45% 15%;
+  }
 </style>
