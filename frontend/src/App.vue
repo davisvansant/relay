@@ -10,6 +10,7 @@
       </div>
       <hr class="hr">
       <div id="messages" class="messages"></div>
+      <div id="base" class="base"></div>
     </div>
   </transition>
 </template>
