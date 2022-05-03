@@ -38,8 +38,8 @@
           users -
           {{ connected_users }}
         </span>
-        <input type="text" id="new_message" class="new_message" autofocus>
-        <button class="new_message_button">new message</button>
+        <input type="text" id="new_message" class="new_message" autofocus @keyup.enter="sendMessage()">
+        <button class="new_message_button" v-on:click="sendMessage()">new message</button>
       </div>
     </div>
   </transition>
