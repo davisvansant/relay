@@ -3,14 +3,18 @@
     <div id="console" class="console">
       <div id="nav" class="nav">
         <span id="title" class="title">
-          <span>
-            r e l a y
-          </span>
+          <span>|</span>
+          <span> r e l a y</span>
           <span id="url" class="url">
+            <span>|</span>
             server
+            <span>.</span>
             {{ url }}
+            <span>|</span>
             status
+            <span>.</span>
             {{ ready_state }}
+            <span>|</span>
           </span>
         </span>
         <button class="close_connection_button">
@@ -78,7 +82,14 @@ export default defineComponent({
   }
   .nav .title {
     color: goldenrod;
+    font: 20px Verdana, sans-serif;
     grid-column-start: 1;
+  }
+  .nav .url {
+    color: goldenrod;
+    font: 16px Verdana, sans-serif;
+    grid-column-start: 2;
+
   }
   .nav .close_connection_button {
     background-color: goldenrod;
