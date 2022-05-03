@@ -29,4 +29,11 @@ export default defineComponent({
   body {
     background: whitesmoke;
   }
+  .hr {
+    color: steelblue;
+    margin-top: 0.5em;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0.5em;
+  }
 </style>
