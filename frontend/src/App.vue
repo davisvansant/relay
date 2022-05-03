@@ -13,6 +13,9 @@
             {{ ready_state }}
           </span>
         </span>
+        <button class="close_connection_button">
+          [ close connection ]
+        </button>
       </div>
       <hr class="hr">
       <div id="messages" class="messages"></div>
@@ -71,5 +74,20 @@ export default defineComponent({
   .nav .title {
     color: goldenrod;
     grid-column-start: 1;
+  }
+  .nav .close_connection_button {
+    background-color: goldenrod;
+    border: 2px solid darkslategray;
+    padding: 5px 10px;
+    outline: none;
+    color: black;
+    font: 12px Verdana, sans-serif;
+    transition: background-color 1s, color 1s, border 1s;
+    grid-column-start: 3;
+  }
+  .nav .close_connection_button:hover {
+    background-color: gainsboro;
+    color: darkslategray;
+    border: 2px solid goldenrod;
   }
 </style>
