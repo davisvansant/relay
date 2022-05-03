@@ -78,10 +78,14 @@ export default defineComponent({
       console.log('Connecting ->', OpenEvent)
       console.log('Connected to server ->', url)
       console.log('Ready state ->', connection.readyState)
+
+      this.checkReadyState()
     })
 
     connection.addEventListener('message', (MessageEvent) => {
       console.log('Received message ->', MessageEvent)
+
+      this.checkReadyState()
 
       const IncomingMessage = JSON.parse(MessageEvent.data)
 
@@ -100,10 +104,14 @@ export default defineComponent({
 
     connection.addEventListener('error', (ErrorEvent) => {
       console.log('Error ->', ErrorEvent)
+
+      this.checkReadyState()
     })
 
     connection.addEventListener('close', (CloseEvent) => {
       console.log('Closing ->', CloseEvent)
+
+      this.checkReadyState()
     })
   },
   methods: {
