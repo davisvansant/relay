@@ -8,6 +8,7 @@
           </span>
         </span>
       </div>
+      <hr class="hr">
     </div>
   </transition>
 </template>
