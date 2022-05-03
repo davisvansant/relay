@@ -26,4 +26,7 @@ export default defineComponent({
 </script>
 
 <style>
+  body {
+    background: whitesmoke;
+  }
 </style>
