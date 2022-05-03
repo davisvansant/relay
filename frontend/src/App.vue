@@ -149,6 +149,10 @@ export default defineComponent({
 
       if (newMessage != null) {
         this.connection.send(newMessage.value)
+
+        const clear = newMessage.value = ''
+
+        return clear
       }
     },
     scrollMessages () {
