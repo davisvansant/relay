@@ -73,6 +73,12 @@ export default defineComponent({
     this.ready_state = ''
     this.url = connection.url
     this.received_messages = messages
+
+    connection.addEventListener('open', (OpenEvent) => {
+      console.log('Connecting ->', OpenEvent)
+      console.log('Connected to server ->', url)
+      console.log('Ready state ->', connection.readyState)
+    })
   }
 })
 </script>
