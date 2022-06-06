@@ -114,13 +114,10 @@ pub async fn remove_user(
     }
 }
 
-pub async fn shutdown(
-    state: &StateSender,
-    // session_id: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let (request, _response) = oneshot::channel();
+pub async fn shutdown(state: &StateSender) -> Result<(), Box<dyn std::error::Error>> {
+    let (_request, _response) = oneshot::channel();
 
-    state.send((StateRequest::Shutdown, request)).await?;
+    state.send((StateRequest::Shutdown, _request)).await?;
 
     Ok(())
 }
