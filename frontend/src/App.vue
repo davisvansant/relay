@@ -1,3 +1,114 @@
+<script setup lang="ts">
+import { nextTick, reactive, ref, watch } from 'vue'
+
+const url = ref('ws://localhost:1806/ws')
+const connection = new WebSocket(url.value)
+
+interface Message {
+  id: number,
+  text: string,
+}
+
+const messages:Message[] = reactive([])
+const uuid = ref('')
+const connected_users = ref(0)
+const ready_state = ref('')
+
+connection.addEventListener('message', (MessageEvent) => {
+      console.log('Received message ->', MessageEvent)
+
+      checkReadyState()
+
+      const IncomingMessage = JSON.parse(MessageEvent.data)
+
+      switch (IncomingMessage.kind) {
+        case 'connected_users':
+          connected_users.value = IncomingMessage.contents
+          break
+        case 'message':
+          receiveMessage(IncomingMessage.contents)
+          break
+        case 'uuid':
+          uuid.value = IncomingMessage.contents
+          break
+      }
+    })
+
+    connection.addEventListener('error', (ErrorEvent) => {
+      console.log('Error ->', ErrorEvent)
+
+      checkReadyState()
+    })
+
+    connection.addEventListener('close', (CloseEvent) => {
+      console.log('Closing ->', CloseEvent)
+
+      checkReadyState()
+    })
+
+function closeConnection () {
+  connection.close(1000, 'goodbye!')
+}
+
+function checkReadyState () {
+  switch ( connection.readyState) {
+    case 0:
+      ready_state.value = 'CONNECTING'
+      return ready_state
+    case 1:
+      ready_state.value = 'OPEN'
+      return ready_state
+    case 2:
+      ready_state.value = 'CLOSING'
+      return ready_state
+    case 3:
+      ready_state.value = 'CLOSED'
+      return ready_state
+    }
+}
+
+function receiveMessage (message: string) {
+  const id = messages.length + 1
+
+  messages.push({ id: id, text: message })
+
+  return messages
+}
+
+function sendMessage () {
+    const newMessage = document.getElementById('new_message') as HTMLInputElement
+
+    console.log(newMessage.value)
+
+    if (newMessage != null) {
+      connection.send(newMessage.value)
+
+    const clear = newMessage.value = ''
+
+    return clear
+  }
+}
+
+function scrollMessages () {
+  const id = messages.length
+  const element = document.getElementById('message' + id)
+
+  if (element != null) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' })
+  }
+}
+
+watch(
+  () => messages,
+  () => {
+    nextTick(() => {
+        scrollMessages()
+    })
+  },
+  { deep: true }
+)
+</script>
+
 <template>
   <transition name="fade" appear>
     <div id="console" class="console">
@@ -23,7 +134,7 @@
       </div>
       <hr class="hr">
       <div id="messages" class="messages">
-        <p v-for="message in received_messages" :key="message" :id="'message' + message.id">
+        <p v-for="message in messages" :key="message" :id="'message' + message.id">
           {{ message.text }}
         </p>
       </div>
@@ -45,140 +156,8 @@
   </transition>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-export default defineComponent({
-  name: 'app',
-  data () {
-    return {
-      connection: WebSocket.prototype,
-      url: '',
-      ready_state: '',
-      received_messages: [{ id: 0, text: '' }],
-      uuid: '',
-      connected_users: ''
-    }
-  },
-  created () {
-    const url = 'ws://localhost:1806/ws'
-    const connection = new WebSocket(url)
-
-    interface Message {
-      id: number,
-      text: string,
-    }
-
-    const messages:Message[] = []
-
-    this.connection = connection
-    this.ready_state = ''
-    this.url = connection.url
-    this.received_messages = messages
-
-    connection.addEventListener('open', (OpenEvent) => {
-      console.log('Connecting ->', OpenEvent)
-      console.log('Connected to server ->', url)
-      console.log('Ready state ->', connection.readyState)
-
-      this.checkReadyState()
-    })
-
-    connection.addEventListener('message', (MessageEvent) => {
-      console.log('Received message ->', MessageEvent)
-
-      this.checkReadyState()
-
-      const IncomingMessage = JSON.parse(MessageEvent.data)
-
-      switch (IncomingMessage.kind) {
-        case 'connected_users':
-          this.connected_users = IncomingMessage.contents
-          break
-        case 'message':
-          this.receiveMessage(IncomingMessage.contents)
-          break
-        case 'uuid':
-          this.uuid = IncomingMessage.contents
-          break
-      }
-    })
-
-    connection.addEventListener('error', (ErrorEvent) => {
-      console.log('Error ->', ErrorEvent)
-
-      this.checkReadyState()
-    })
-
-    connection.addEventListener('close', (CloseEvent) => {
-      console.log('Closing ->', CloseEvent)
-
-      this.checkReadyState()
-    })
-  },
-  methods: {
-    closeConnection () {
-      this.connection.close(1000, 'goodbye!')
-    },
-    checkReadyState () {
-      switch (this.connection.readyState) {
-        case 0:
-          this.ready_state = 'CONNECTING'
-          return this.ready_state
-        case 1:
-          this.ready_state = 'OPEN'
-          return this.ready_state
-        case 2:
-          this.ready_state = 'CLOSING'
-          return this.ready_state
-        case 3:
-          this.ready_state = 'CLOSED'
-          return this.ready_state
-      }
-    },
-    receiveMessage (message: string) {
-      const id = this.received_messages.length + 1
-
-      this.received_messages.push({ id: id, text: message })
-
-      return this.received_messages
-    },
-    sendMessage () {
-      const newMessage = document.getElementById('new_message') as HTMLInputElement
-
-      console.log(newMessage.value)
-
-      if (newMessage != null) {
-        this.connection.send(newMessage.value)
-
-        const clear = newMessage.value = ''
-
-        return clear
-      }
-    },
-    scrollMessages () {
-      const id = this.received_messages.length
-      const element = document.getElementById('message' + id)
-
-      if (element != null) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' })
-      }
-    }
-  },
-  watch: {
-    received_messages: {
-      deep: true,
-      handler () {
-        this.$nextTick(() => {
-          this.scrollMessages()
-        })
-      }
-    }
-  }
-})
-</script>
-
 <style>
-  .fade-enter-from {
+.fade-enter-from {
     opacity: 0;
   }
   .fade-enter-active {
