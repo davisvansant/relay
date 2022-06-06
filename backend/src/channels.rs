@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use tokio::sync::{mpsc, oneshot, watch};
 use warp::ws::Message;
 
+use crate::info;
+
 pub type ConnectedUsers = HashMap<String, WebSocketSender>;
 pub type ShutdownSignal = watch::Receiver<u8>;
 pub type StateReceiver = mpsc::Receiver<(StateRequest, oneshot::Sender<StateResponse>)>;
@@ -58,7 +60,7 @@ pub async fn add_user(
 
     match response.await {
         Ok(StateResponse::Ok) => {
-            println!("successfully added user...");
+            info!("successfully added user...");
 
             Ok(())
         }
@@ -103,7 +105,7 @@ pub async fn remove_user(
 
     match response.await {
         Ok(StateResponse::Ok) => {
-            println!("closing time...");
+            info!("closing time...");
 
             Ok(())
         }

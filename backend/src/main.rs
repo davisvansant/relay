@@ -1,8 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::str::FromStr;
-
 use tokio::signal;
 use tokio::sync::{mpsc, oneshot, watch};
+use tracing::{error, info};
 
 mod channels;
 mod json;
@@ -15,6 +15,8 @@ use crate::state::State;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
+
     let address = IpAddr::V4(Ipv4Addr::from_str("0.0.0.0")?);
     let port = 1806;
     let socket_address = SocketAddr::new(address, port);
@@ -27,25 +29,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state_task = tokio::spawn(async move {
         if let Err(error) = state.run().await {
-            println!("error with state -> {:?}", error);
+            error!("relay state error -> {:?}", error);
         }
     });
 
     let server_task = tokio::spawn(async move {
         if let Err(error) = server.run().await {
-            println!("error with server -> {:?}", error);
+            error!("relay server error -> {:?}", error);
         }
     });
 
     let shutdown_task = tokio::spawn(async move {
         if let Ok(()) = signal::ctrl_c().await {
-            println!("received shutdown signal!");
+            info!("received shutdown signal!");
 
             if let Err(error) = send_shutdown_signal.send(0) {
-                println!(
-                    "error sending shutdown signal to running tasks -> {:?}",
-                    error,
-                );
+                error!("relay shutdown signal error -> {:?}", error);
             }
         }
     });

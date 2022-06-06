@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use warp::filters::ws::Message;
 
+use crate::{error, info};
+
 use crate::channels::{ConnectedUsers, StateReceiver, WebSocketSender};
 use crate::channels::{StateRequest, StateResponse};
 
@@ -25,43 +27,33 @@ impl State {
     pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         while let Some((request, response)) = self.receiver.recv().await {
             match request {
-                StateRequest::AddMessage(message) => {
-                    println!("incoming add message request");
-
-                    self.add_message(message).await?;
-                }
+                StateRequest::AddMessage(message) => self.add_message(message).await?,
                 StateRequest::AddUser((uuid, connection)) => {
-                    println!("incoming add user request!");
-
                     self.add_user(uuid, connection).await?;
 
                     if let Err(error) = response.send(StateResponse::Ok) {
-                        println!("error sending add user response -> {:?}", error);
+                        error!("add user response -> {:?}", error);
                     }
                 }
                 StateRequest::GetMessages => {
-                    println!("incoming get messages request...");
-
                     let messages = self.get_messages().await?;
 
                     if let Err(error) = response.send(StateResponse::Messages(messages)) {
-                        println!("error sending response -> {:?}", error);
+                        error!("get messages response -> {:?}", error);
                     }
                 }
                 StateRequest::GetUsers => {
-                    println!("incoming get users request....");
-
                     let users = self.get_users().await;
 
                     if let Err(error) = response.send(StateResponse::Users(users)) {
-                        println!("error sending response -> {:?}", error);
+                        error!("get user response -> {:?}", error);
                     }
                 }
                 StateRequest::RemoveUser(uuid) => {
                     self.remove_user(&uuid).await?;
 
                     if let Err(error) = response.send(StateResponse::Ok) {
-                        println!("error sending response -> {:?}", error);
+                        error!("remove user response -> {:?}", error);
                     }
                 }
                 StateRequest::Shutdown => {
@@ -84,18 +76,20 @@ impl State {
         uuid: String,
         websocket_sender: WebSocketSender,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        println!("checking user -> {:?}", &uuid);
-
         match self.users.insert(uuid, websocket_sender) {
-            Some(key) => println!("updating user -> {:?}", key),
-            None => println!("adding new user..."),
+            Some(key) => {
+                info!("updating user -> {:?}", key);
+            }
+            None => {
+                info!("adding new user...");
+            }
         }
 
         Ok(())
     }
 
     async fn get_messages(&self) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
-        println!("getting messages...");
+        info!("getting messages...");
 
         Ok(self.messages.to_vec())
     }
@@ -106,7 +100,7 @@ impl State {
 
     async fn remove_user(&mut self, uuid: &str) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(entry) = self.users.remove(uuid) {
-            println!("removing user -> {:?}", entry);
+            info!("removing user -> {:?}", entry);
         }
 
         Ok(())

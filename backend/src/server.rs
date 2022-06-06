@@ -10,6 +10,8 @@ use warp::{ws, Filter};
 
 use uuid::Uuid;
 
+use crate::{error, info};
+
 use crate::channels::{add_message, add_user, get_messages, get_users, remove_user, shutdown};
 use crate::channels::{
     ShutdownSignal, StateSender, WebSocketConnection, WebSocketReceiver, WebSocketSender,
@@ -48,22 +50,22 @@ impl Server {
             .map(|ws: Ws, state_channel| {
                 ws.on_upgrade(|connection| async move {
                     if let Err(error) = Self::handle(connection, state_channel).await {
-                        println!("connection error -> {:?}", error);
+                        error!("connection error -> {:?}", error)
                     }
                 })
             });
 
-        println!("server running -> {:?}", self.socket_address);
+        info!("socket address -> {:?}", self.socket_address);
 
         let (_, server) =
             warp::serve(filter).bind_with_graceful_shutdown(self.socket_address, async move {
                 shutdown_signal.changed().await.ok();
 
                 if let Ok(()) = shutdown(&send_shutdown).await {
-                    println!("shutting down state...");
+                    info!("shutting down state...")
                 }
 
-                println!("shutting down server...");
+                info!("shutting down server...")
             });
 
         server.await;
@@ -82,7 +84,7 @@ impl Server {
 
         tokio::spawn(async move {
             if let Err(error) = Server::incoming_connection(&mut sink_receiver, &mut sink).await {
-                println!("error handling incoming connection -> {:?}", error);
+                error!("incoming connection -> {:?}", error)
             }
         });
 
@@ -90,7 +92,7 @@ impl Server {
             if let Err(error) =
                 Server::initial_messages(initial_state_sender, &uuid, sink_sender).await
             {
-                println!("error running initial connection tasks -> {:?}", error);
+                error!("initial connection tasks -> {:?}", error);
             }
         });
 
@@ -98,7 +100,7 @@ impl Server {
             match incoming {
                 Ok(message) => {
                     if message.is_text() {
-                        println!("received text -> {:?}", &message);
+                        info!("received text -> {:?}", &message);
 
                         add_message(&state_channel, &message).await?;
 
@@ -116,22 +118,22 @@ impl Server {
                         }
                     }
                     if message.is_binary() {
-                        println!("received binary -> {:?}", &message);
+                        info!("received binary -> {:?}", &message);
 
                         unimplemented!();
                     }
                     if message.is_ping() {
-                        println!("received ping -> {:?}", &message);
+                        info!("received ping -> {:?}", &message);
 
                         unimplemented!();
                     }
                     if message.is_pong() {
-                        println!("received pong -> {:?}", &message);
+                        info!("received pong -> {:?}", &message);
 
                         unimplemented!();
                     }
                     if message.is_close() {
-                        println!("received close -> {:?}", &message);
+                        info!("received close -> {:?}", &message);
 
                         let connected_users = get_users(&state_channel).await?;
 
@@ -159,7 +161,12 @@ impl Server {
                         }
                     }
                 }
-                Err(error) => println!("incoming websocket connection error -> {:?}", error),
+                Err(error) => {
+                    error!(
+                        "relay server incoming websocket connection error -> {:?}",
+                        error,
+                    );
+                }
             }
         }
 
@@ -226,9 +233,9 @@ impl Server {
             }
 
             if older_messages.is_empty() {
-                println!("no older messages to send...");
+                info!("no older messages to send...");
             } else {
-                println!("sending older messages ...");
+                info!("sending older messages ...");
 
                 for message in &older_messages {
                     let contents = String::from_utf8(message.to_owned().into_bytes())?;
