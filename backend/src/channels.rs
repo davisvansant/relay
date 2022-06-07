@@ -58,13 +58,12 @@ pub async fn add_user(
         .send((StateRequest::AddUser((uuid, websocket)), request))
         .await?;
 
-    match response.await {
-        Ok(StateResponse::Ok) => {
+    match response.await? {
+        StateResponse::Ok => {
             info!("successfully added user...");
 
             Ok(())
         }
-        Err(error) => Err(Box::new(error)),
         _ => panic!("unexpected response!"),
     }
 }
@@ -74,9 +73,8 @@ pub async fn get_messages(state: &StateSender) -> Result<Vec<Message>, Box<dyn s
 
     state.send((StateRequest::GetMessages, request)).await?;
 
-    match response.await {
-        Ok(StateResponse::Messages(messages)) => Ok(messages),
-        Err(error) => Err(Box::new(error)),
+    match response.await? {
+        StateResponse::Messages(messages) => Ok(messages),
         _ => panic!("unexpected response!"),
     }
 }
@@ -86,9 +84,8 @@ pub async fn get_users(state: &StateSender) -> Result<ConnectedUsers, Box<dyn st
 
     state.send((StateRequest::GetUsers, request)).await?;
 
-    match response.await {
-        Ok(StateResponse::Users(connected_users)) => Ok(connected_users),
-        Err(error) => Err(Box::new(error)),
+    match response.await? {
+        StateResponse::Users(connected_users) => Ok(connected_users),
         _ => panic!("unexpected response!"),
     }
 }
@@ -103,13 +100,12 @@ pub async fn remove_user(
         .send((StateRequest::RemoveUser(session_id.to_owned()), request))
         .await?;
 
-    match response.await {
-        Ok(StateResponse::Ok) => {
+    match response.await? {
+        StateResponse::Ok => {
             info!("closing time...");
 
             Ok(())
         }
-        Err(error) => Err(Box::new(error)),
         _ => panic!("unexpected response!"),
     }
 }
