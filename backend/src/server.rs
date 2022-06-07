@@ -13,9 +13,7 @@ use uuid::Uuid;
 use crate::{error, info};
 
 use crate::channels::{add_message, add_user, get_messages, get_users, remove_user, shutdown};
-use crate::channels::{
-    ShutdownSignal, StateSender, WebSocketConnection, WebSocketReceiver, WebSocketSender,
-};
+use crate::channels::{ShutdownSignal, StateSender, WebSocketConnection, WebSocketReceiver};
 use crate::json::{MessageKind, Object};
 
 pub struct Server {
@@ -82,6 +80,8 @@ impl Server {
         let initial_state_sender = state_channel.clone();
         let (session_id, uuid) = Server::create_account().await;
 
+        add_user(&state_channel, session_id.clone(), sink_sender).await?;
+
         tokio::spawn(async move {
             if let Err(error) = Server::incoming_connection(&mut sink_receiver, &mut sink).await {
                 error!("incoming connection -> {:?}", error)
@@ -89,9 +89,7 @@ impl Server {
         });
 
         tokio::spawn(async move {
-            if let Err(error) =
-                Server::initial_messages(initial_state_sender, &uuid, sink_sender).await
-            {
+            if let Err(error) = Server::initial_messages(initial_state_sender, &uuid).await {
                 error!("initial connection tasks -> {:?}", error);
             }
         });
@@ -201,10 +199,7 @@ impl Server {
     async fn initial_messages(
         state: StateSender,
         uuid: &str,
-        websocket_sender: WebSocketSender,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        add_user(&state, uuid.to_owned(), websocket_sender).await?;
-
         let connected_users = get_users(&state).await?;
         let older_messages = get_messages(&state).await?;
 
