@@ -42,6 +42,17 @@ impl State {
                         error!("get messages response -> {:?}", error);
                     }
                 }
+                StateRequest::GetUser(uuid) => {
+                    match self.users.get(&uuid) {
+                        Some(user) => {
+                            if let Err(error) = response.send(StateResponse::User(user.to_owned()))
+                            {
+                                error!("get user response -> {:?}", error);
+                            }
+                        }
+                        None => error!("requsted user not found!"),
+                    }
+                }
                 StateRequest::GetUsers => {
                     let users = self.get_users().await;
 

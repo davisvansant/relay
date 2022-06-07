@@ -15,6 +15,7 @@ pub type WebSocketSender = mpsc::Sender<WebSocketConnection>;
 pub enum StateRequest {
     AddMessage(Message),
     AddUser((String, WebSocketSender)),
+    GetUser(String),
     GetUsers,
     GetMessages,
     RemoveUser(String),
@@ -24,6 +25,7 @@ pub enum StateRequest {
 #[derive(Clone, Debug)]
 pub enum StateResponse {
     Messages(Vec<Message>),
+    User(WebSocketSender),
     Users(ConnectedUsers),
     Ok,
 }
@@ -75,6 +77,22 @@ pub async fn get_messages(state: &StateSender) -> Result<Vec<Message>, Box<dyn s
 
     match response.await? {
         StateResponse::Messages(messages) => Ok(messages),
+        _ => panic!("unexpected response!"),
+    }
+}
+
+pub async fn get_user(
+    state: &StateSender,
+    uuid: &str,
+) -> Result<WebSocketSender, Box<dyn std::error::Error>> {
+    let (request, response) = oneshot::channel();
+
+    state
+        .send((StateRequest::GetUser(uuid.to_owned()), request))
+        .await?;
+
+    match response.await? {
+        StateResponse::User(user) => Ok(user),
         _ => panic!("unexpected response!"),
     }
 }
@@ -147,6 +165,7 @@ mod tests {
                     StateRequest::GetMessages => {
                         unimplemented!();
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         unimplemented!();
                     }
@@ -198,6 +217,7 @@ mod tests {
                     StateRequest::GetMessages => {
                         unimplemented!();
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         unimplemented!();
                     }
@@ -258,6 +278,7 @@ mod tests {
 
                         break;
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         unimplemented!();
                     }
@@ -314,6 +335,7 @@ mod tests {
                     StateRequest::GetMessages => {
                         unimplemented!();
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         test_response
                             .send(StateResponse::Users(test_state_users.clone()))
@@ -382,6 +404,7 @@ mod tests {
                     StateRequest::GetMessages => {
                         unimplemented!();
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         unimplemented!()
                     }
@@ -425,6 +448,7 @@ mod tests {
                     StateRequest::GetMessages => {
                         unimplemented!();
                     }
+                    StateRequest::GetUser(_) => unimplemented!(),
                     StateRequest::GetUsers => {
                         unimplemented!()
                     }

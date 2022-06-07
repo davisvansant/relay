@@ -12,7 +12,9 @@ use uuid::Uuid;
 
 use crate::{error, info};
 
-use crate::channels::{add_message, add_user, get_messages, get_users, remove_user, shutdown};
+use crate::channels::{
+    add_message, add_user, get_messages, get_user, get_users, remove_user, shutdown,
+};
 use crate::channels::{ShutdownSignal, StateSender, WebSocketConnection, WebSocketReceiver};
 use crate::json::{MessageKind, Object};
 
@@ -133,11 +135,9 @@ impl Server {
                     if message.is_close() {
                         info!("received close -> {:?}", &message);
 
-                        let connected_users = get_users(&state_channel).await?;
+                        let current_user = get_user(&state_channel, &session_id).await?;
 
-                        if let Some(current_user) = connected_users.get(&session_id) {
-                            current_user.send(WebSocketConnection::Close).await?;
-                        }
+                        current_user.send(WebSocketConnection::Close).await?;
 
                         remove_user(&state_channel, &session_id).await?;
 
@@ -306,6 +306,14 @@ mod tests {
                             .send(StateResponse::Messages(test_messages))
                             .unwrap();
                     }
+                    StateRequest::GetUser(test_uuid) => match test_state_users.get(&test_uuid) {
+                        Some(test_user) => {
+                            test_response
+                                .send(StateResponse::User(test_user.to_owned()))
+                                .unwrap();
+                        }
+                        None => assert!(test_state_users.get(&test_uuid).is_none()),
+                    },
                     StateRequest::GetUsers => {
                         test_response
                             .send(StateResponse::Users(test_state_users.clone()))
